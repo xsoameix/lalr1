@@ -1701,9 +1701,10 @@ main(int argc, char ** argv) {
           fprintf(dot, " %s",
                   toks + toks_s[terms[k]]);
         fprintf(dot, "</td><td cellpadding=\"3\" border=\"1\" sides=\"rb\">");
-        if (terms[term]) {
-          fprintf(dot, "%s", toks + toks_s[terms[term]]);
-        } else {
+        sym_t sym = terms[term];
+        if (sym && !nts_p[sym]) {
+          fprintf(dot, "%s", toks + toks_s[sym]);
+        } else if (!sym) {
           char * trm = irtrms + row[pterms[term]] * ts_size;
           char prev = 0;
           for (sym_t k = 0; k < ts_size; k++)
