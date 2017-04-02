@@ -1,0 +1,1 @@
+@..\graphviz-2.38\release\bin\dot -Tpng -ograph.png graph.dot

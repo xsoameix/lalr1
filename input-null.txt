@@ -1,0 +1,15 @@
+S
+ : Ls $;
+Ls
+ : Ls L
+ | ;
+L
+ : s \: Ps \;;
+Ps
+ : Ps \| P
+ | P;
+P
+ : Ss;
+Ss
+ : Ss s
+ | ;
