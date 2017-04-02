@@ -23,3 +23,9 @@ Graphviz is optional.
     $ dot
 
 ![Items](graph.png)
+
+If there is a confict:
+
+    $ run null input-conflict.txt
+
+![Conflict](graph-conflict.png)

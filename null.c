@@ -1564,20 +1564,23 @@ main(int argc, char ** argv) {
       if (terms[term]) { // shift
         size_t sym = terms[term];
         if (!nts_p[sym]) { // shift if t
-          if (itrm[syms[sym]])
-            conflict = 1;
-          if (syms[sym]) // S -> E $, $ is first t, t index is 0
-            itrm[syms[sym]] = ito[mat[sym] - 1] + 2; // shift if t
-          else
-            itrm[syms[sym]] = 1; // accept if $
+          if (syms[sym]) { // S -> E $, $ is first t, t index is 0
+            size_t shift = ito[mat[sym] - 1] + 2;
+            if (itrm[syms[sym]] && itrm[syms[sym]] != shift) conflict = 1;
+            itrm[syms[sym]] = shift; // shift if t
+          } else {
+            size_t accept = 1;
+            if (itrm[syms[sym]] && itrm[syms[sym]] != accept) conflict = 1;
+            itrm[syms[sym]] = accept; // accept if $
+          }
         }
       } else { // reduction
         char * trm = irtrms + row[pterms[term]] * ts_size;
         for (sym_t k = 0; k < ts_size; k++)
           if (trm[k]) {
-            if (itrm[k])
-              conflict = 1;
-            itrm[k] = pterms[term] + isadj_size + 2; // reduce A -> w
+            size_t reduce = pterms[term] + isadj_size + 2;
+            if (itrm[k] && itrm[k] != reduce) conflict = 1;
+            itrm[k] = reduce; // reduce A -> w
           }
       }
     }
@@ -1664,6 +1667,9 @@ main(int argc, char ** argv) {
     char * dot_s = "graph.dot";
     FILE * dot;
     if ((dot = fopen(dot_s, "wb")) == NULL)
+      goto exit_dot;
+    char * err;
+    if ((err = malloc(ts_size)) == NULL)
       goto close_dot;
     fprintf(dot,
             "digraph R {\n"
@@ -1674,7 +1680,34 @@ main(int argc, char ** argv) {
             " node [fontname=\"Consolas\", fontsize=10];\n"
             " edge [fontname=\"Consolas\", fontsize=11];\n");
     for (item_t i = 0; i < isadj_size; i++) {
+      size_t * mat = imat + i * syms_size;
+      size_t * itrm = itrms + i * ts_size;
       size_t * row = irmat + i * prods_size;
+      for (sym_t j = 0; j < ts_size; j++)
+        err[j] = 0;
+      for (size_t j = isadj[i]; j; j = isnext[j - 1]) {
+        size_t term = isto[j - 1];
+        sym_t sym = terms[term];
+        if (sym && !nts_p[sym]) {
+          if (syms[sym]) { // S -> E $, $ is first t, t index is 0
+            size_t shift = ito[mat[sym] - 1] + 2;
+            if (itrm[syms[sym]] && itrm[syms[sym]] != shift)
+              err[syms[sym]] = 1;
+          } else {
+            size_t accept = 1;
+            if (itrm[syms[sym]] && itrm[syms[sym]] != accept)
+              err[syms[sym]] = 1;
+          }
+        } else if (!sym) {
+          char * trm = irtrms + row[pterms[term]] * ts_size;
+          for (sym_t k = 0; k < ts_size; k++)
+            if (trm[k]) {
+              size_t reduce = pterms[term] + isadj_size + 2;
+              if (itrm[k] && itrm[k] != reduce)
+                err[k] = 1;
+            }
+        }
+      }
       fprintf(dot,
               " t%u [shape=none, margin=0, label=<"
               "<table border=\"0\" cellborder=\"0\""
@@ -1703,7 +1736,11 @@ main(int argc, char ** argv) {
         fprintf(dot, "</td><td cellpadding=\"3\" border=\"1\" sides=\"rb\">");
         sym_t sym = terms[term];
         if (sym && !nts_p[sym]) {
+          if (err[syms[sym]])
+            fprintf(dot, "<font color=\"red1\"><b><i>");
           fprintf(dot, "%s", toks + toks_s[sym]);
+          if (err[syms[sym]])
+            fprintf(dot, "</i></b></font>");
         } else if (!sym) {
           char * trm = irtrms + row[pterms[term]] * ts_size;
           char prev = 0;
@@ -1711,7 +1748,11 @@ main(int argc, char ** argv) {
             if (trm[k]) {
               if (prev)
                 fprintf(dot, ",");
+              if (err[k])
+                fprintf(dot, "<font color=\"red1\"><b><i>");
               fprintf(dot, "%s", toks + toks_s[ts[k]]);
+              if (err[k])
+                fprintf(dot, "</i></b></font>");
               prev = 1;
             }
         }
@@ -1726,8 +1767,11 @@ main(int argc, char ** argv) {
       }
     }
     fprintf(dot, "}\n");
+    free(err);
 close_dot:
     fclose(dot);
+exit_dot:
+    ;
   }
   // done
   printf("done\n");
