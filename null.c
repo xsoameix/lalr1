@@ -1674,14 +1674,18 @@ main(int argc, char ** argv) {
             " node [fontname=\"Consolas\", fontsize=10];\n"
             " edge [fontname=\"Consolas\", fontsize=11];\n");
     for (item_t i = 0; i < isadj_size; i++) {
+      size_t * row = irmat + i * prods_size;
       fprintf(dot,
               " t%u [shape=none, margin=0, label=<"
-              "<table border=\"0\" cellborder=\"1\""
-              " cellspacing=\"0\" cellpadding=\"3\">"
-              "<tr><td cellpadding=\"0\">%u</td></tr>"
-              "<tr><td balign=\"left\">", i, i);
+              "<table border=\"0\" cellborder=\"0\""
+              " cellspacing=\"0\" cellpadding=\"0\">"
+              "<tr><td colspan=\"2\" border=\"1\""
+              " cellpadding=\"0\">%u</td></tr>", i, i);
       for (size_t j = isadj[i]; j; j = isnext[j - 1]) {
         size_t term = isto[j - 1];
+        fprintf(dot,
+                "<tr><td cellpadding=\"3\" align=\"left\""
+                " border=\"1\" sides=\"lrb\">");
         if (!terms[term])
           fprintf(dot, "<font color=\"darkviolet\"><b><i>");
         fprintf(dot, "%s", toks + toks_s[sprods[pterms[term]]]);
@@ -1696,10 +1700,23 @@ main(int argc, char ** argv) {
         for (size_t k = term; terms[k]; k++)
           fprintf(dot, " %s",
                   toks + toks_s[terms[k]]);
-        if (isnext[j - 1])
-          fprintf(dot, "<br/>");
+        fprintf(dot, "</td><td cellpadding=\"3\" border=\"1\" sides=\"rb\">");
+        if (terms[term]) {
+          fprintf(dot, "%s", toks + toks_s[terms[term]]);
+        } else {
+          char * trm = irtrms + row[pterms[term]] * ts_size;
+          char prev = 0;
+          for (sym_t k = 0; k < ts_size; k++)
+            if (trm[k]) {
+              if (prev)
+                fprintf(dot, ",");
+              fprintf(dot, "%s", toks + toks_s[ts[k]]);
+              prev = 1;
+            }
+        }
+        fprintf(dot, "</td></tr>");
       }
-      fprintf(dot, "</td></tr></table>>];\n");
+      fprintf(dot, "</table>>];\n");
     }
     for (item_t i = 0; i < isadj_size; i++) {
       for (size_t j = iadj[i]; j; j = inext[j - 1]) {
