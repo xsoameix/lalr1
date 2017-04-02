@@ -22,4 +22,4 @@ Graphviz is optional.
 
     $ dot
 
-[Items](graph.png)
+![Items](graph.png)
